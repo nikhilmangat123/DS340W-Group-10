@@ -164,10 +164,8 @@ def parse_score_gpt(review, data_type, prompt_type):
                 return [0, 1]
             elif pred_rest.startswith('tie'):
                 return [1, 1]
-            else:
-                if data_type == "salad-bench":
-                    return [0, 0]
-                    return random.choice([[1.0, 0.0], [0.0, 1.0]])  # default is random
+        # return random.choice([[1.0, 0.0], [0.0, 1.0]])  # default is random
+        return [1, 1]
     elif "prometheus" not in data_type and data_type not in ['halu-eval-summary', 'halu-eval-qa', 'halu-eval-dialogue', 'toxic-chat']:
         if prompt_type == "cot":
             try:

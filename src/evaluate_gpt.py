@@ -9,6 +9,7 @@ import re
 import requests
 import multiprocessing
 from functools import partial
+import timeout_decorator
 
 from evaluate_judge import build_dataset, calculate_metrics
 from build_prompt_gpt import parse_score_gpt, create_prompt_gpt
@@ -16,19 +17,8 @@ from build_prompt_gpt import parse_score_gpt, create_prompt_gpt
 
 def build_params_gpt():
     parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--model-name",
-        type=str,
-        # choices=("gpt-4-1106-preview", "gpt-4-0125-preview", "gpt-4-turbo-2024-04-09", 
-        #          "gpt-3.5-turbo-0613", "gpt-3.5-turbo-1106", "gpt-3.5-turbo-0125"),
-        default=None,
-    )
-    parser.add_argument(
-        "--prompt-type",
-        type=str,
-        choices=("vanilla", "cot"),
-        default=None,
-    )
+    parser.add_argument("--model-name", type=str, default=None)
+    parser.add_argument("--prompt-type", type=str, choices=("vanilla", "cot"), default=None)
     parser.add_argument(
         "--data-type",
         type=str,
@@ -37,113 +27,54 @@ def build_params_gpt():
                  "llmbar-neighbor", "llmbar-natural", "llmbar-gptinst", "llmbar-gptout", "llmbar-manual"),
         default=None,
     )
-    parser.add_argument(
-        "--data-path",
-        type=str,
-        default="./data",
-    )
-    parser.add_argument(
-        "--max-new-token",
-        type=int,
-        default=None,
-        help="The maximum number of new tokens.",
-    )
-    parser.add_argument(
-        "--temperature",
-        type=float,
-        default=0.0,
-        help="The temperature for sampling.",
-    )
-    parser.add_argument(
-        "--logit-file",
-        type=str,
-        default=None
-    )
-    parser.add_argument(
-        "--pool-number",
-        type=int,
-        default=10,
-    )
-    parser.add_argument(
-        "--multi-process",
-        type=str,
-        default="False",
-    )
-    parser.add_argument(
-        "--rewrite-output",
-        type=str,
-        default="False",
-    )
+    parser.add_argument("--data-path", type=str, default="./data")
+    parser.add_argument("--max-new-token", type=int, default=None, help="The maximum number of new tokens.")
+    parser.add_argument("--temperature", type=float, default=0.0, help="The temperature for sampling.")
+    parser.add_argument("--logit-file", type=str, default=None)
+    parser.add_argument("--pool-number", type=int, default=32)
+    parser.add_argument("--multi-process", type=str, default="False")
+    parser.add_argument("--rewrite-output", type=str, default="False")
+    parser.add_argument("--batch-size", type=int, default=100, help="Batch size for saving results.")
     args = parser.parse_args()
     return args
 
-
-# def request_gpt(prompt, model, temperature, max_new_tokens):
-
-#     # url = "https://api.ai-gaochao.cn/v1/chat/completions"
-#     url = "https://idealab.alibaba-inc.com/api/openai/v1"
-#     # headers = {
-#     #     "Content-Type": "application/json",
-#     #     "Authorization": "Bearer sk-agEcX3Su78Bu09c2F49978C6Ba424977B936C8710fAb42E0",
-#     # }
-#     headers = {
-#         "Content-Type": "application/json",
-#         "Authorization": "Bearer sk-f84283ab79d26d15be359b6d6979308a",
-#     }
-#     model = "gpt-4o-0513"
-#     max_tries = 5
-#     res = ''
-#     response = None
-#     sys_info = {"role": "system", "content": "You are a helpful and precise assistant for checking the quality of the answer."}
-#     for i in range(max_tries):
-#         try:
-#             messages = [sys_info, {"role": "user", "content": prompt}]
-#             messages = [{"role": "user", "content": prompt}]
-#             data = {"model": model, "messages": messages,
-#                     "temperature": temperature, "max_tokens": max_new_tokens}
-#             response = requests.post(
-#                 url, headers=headers, data=json.dumps(data))
-#             response = response.json()
-#             res = response['choices'][0]['message']['content'].strip()
-#             break
-#         except Exception as e:
-#             print("Exception! The response is " + str(response))
-#             time.sleep(5)
-#             continue
-#     return res
-
+@timeout_decorator.timeout(30, use_signals=True)
 def request_gpt(prompt, model, temperature, max_new_tokens):
-    model = "gpt-4o-0513"
-    api_key = "f84283ab79d26d15be359b6d6979308a"
-    client = openai.OpenAI(api_key=api_key, base_url="https://idealab.alibaba-inc.com/api/openai/v1")
-    payload = {
-        "model": model,
-        "messages": [
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ]
+    url = "https://yunwu.ai/v1/chat/completions"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer PUT-YOUR-KEY-HERE",
     }
-    max_tries = 20
+    max_tries = 5
     res = ''
+    response = None
+    sys_info = {"role": "system", "content": "You are a helpful and precise assistant for checking the quality of the answer."}
     for i in range(max_tries):
         try:
-            chat_completion = client.chat.completions.create(model=payload['model'], temperature=temperature, messages=payload['messages'])
-            res = chat_completion.choices[0].message.content
-            break
+            messages = [{"role": "user", "content": prompt}]
+            data = {"model": model, "messages": messages,
+                    "temperature": temperature, "max_tokens": max_new_tokens}
+            response = requests.post(
+                url, headers=headers, data=json.dumps(data))
+            response_json = response.json()
+            if 'choices' in response_json:
+                res = response_json['choices'][0]['message']['content'].strip()
+                break
+            else:
+                time.sleep(2)
+                continue
         except Exception as e:
-            if i == max_tries-1:
-                raise Exception("MAX_RETRY exceeded! Please check your codes! ")
-            print("Exception! The exception is "+str(e))
+            print("Exception! The response is " + str(response))
             time.sleep(5)
             continue
+    if i == max_tries - 1:
+        print("Max tries exceeded! Fallback to empty response.")
     return res
 
 def gpt_scoring(prompt, model, temperature, max_new_tokens):
-
     prediction = request_gpt(prompt, model, temperature=temperature, max_new_tokens=max_new_tokens)
 
+    # 还原回原始的counter逻辑
     counter.value += 1
     print(f"gpt_scoring {counter.value} finished.")
 
@@ -162,7 +93,6 @@ if __name__ == "__main__":
     if "prometheus" in args.data_type:
         args.prompt_type = "cot"
     
-    # 根据是否使用COT自动设置最大长度，避免浪费API和提高速度
     if args.max_new_token is None:
         if args.prompt_type == "cot":
             args.max_new_token = 1024
@@ -170,7 +100,6 @@ if __name__ == "__main__":
             args.max_new_token = 16
 
     dataset = build_dataset(args.data_type, args.data_path)
-
     instruction = create_prompt_gpt(args.data_type, args.prompt_type)
 
     prompts = []
@@ -199,44 +128,105 @@ if __name__ == "__main__":
         answers.append(example["score"])
 
     print("Prompt built finished! Sampled prompt:")
-    print(prompts[random.randint(0, len(prompts)-1)]+"\n")
+    if len(prompts) > 0:
+        print(prompts[random.randint(0, len(prompts)-1)]+"\n")
 
     if args.logit_file is None:
         args.logit_file = f"./outputs/{args.data_type}-{args.model_name}-{args.prompt_type}.jsonl"
 
-    if os.path.exists(args.logit_file):
-        if args.rewrite_output == "True":
-            os.remove(args.logit_file)        
-        else:
-            # 如果logit_file已经存在，就直接读取内容，仅仅对其进行重新后处理抽取分数
-            with open(args.logit_file, "r", encoding="utf-8") as fin:
-                lines = [json.loads(line) for line in fin.readlines()]
-
-            predictions = [line["prediction"] for line in lines]
+    # -----------------------------------------------------------
+    # Resume Logic (断点续传检测)
+    # -----------------------------------------------------------
+    processed_count = 0
+    existing_pred_scores = []
     
-    if not os.path.exists(args.logit_file) or args.rewrite_output == "True":
-        manager = multiprocessing.Manager()
-        counter = manager.Value("counter", 0)
-        pool = multiprocessing.Pool(processes=args.pool_number, initializer=init, initargs=(counter,))
+    # 如果不要求重写，且文件存在，则读取已有的进度
+    if args.rewrite_output == "False" and os.path.exists(args.logit_file):
+        print(f"File {args.logit_file} exists. Checking processed lines...")
+        with open(args.logit_file, "r") as f:
+            lines = f.readlines()
+            processed_count = len(lines)
+            for line in lines:
+                data = json.loads(line)
+                existing_pred_scores.append(data["score"])
+        print(f"Resuming from index {processed_count}. Total: {len(prompts)}.")
+    elif args.rewrite_output == "True" and os.path.exists(args.logit_file):
+        os.remove(args.logit_file)
 
+    # 如果已经全部跑完了，直接跳过推理
+    if processed_count >= len(prompts):
+        print("All data already processed. Calculating metrics directly...")
+        metrics_dicts = calculate_metrics(answers, existing_pred_scores, args.data_type)
+        print("**********************************************")
+        print(f"Model: {args.model_name}, Data: {args.data_type}")
+        print(metrics_dicts)
+        print("**********************************************")
+        exit()
+
+    # 只处理剩下的 Prompt
+    remaining_prompts = prompts[processed_count:]
+
+    # -----------------------------------------------------------
+    # Counter Init (保持原始逻辑，但设置初始值为已完成数量)
+    # -----------------------------------------------------------
+    manager = multiprocessing.Manager()
+    # counter 初始化为 processed_count，这样日志打印的数字是连续的
+    counter = manager.Value("counter", processed_count)
+    
+    # -----------------------------------------------------------
+    # Multiprocessing Pool Init
+    # -----------------------------------------------------------
+    if args.multi_process != "False":
+        pool = multiprocessing.Pool(processes=args.pool_number, initializer=init, initargs=(counter,))
+    else:
+        # 单进程模式下，手动调用init以确保全局counter被设置，防止NameError
+        init(counter)
+
+    # -----------------------------------------------------------
+    # Batch Processing & Writing
+    # -----------------------------------------------------------
+    new_pred_scores = []
+    batch_size = args.batch_size
+    total_remaining = len(remaining_prompts)
+
+    print(f"Start processing {total_remaining} items in batches of {batch_size}...")
+
+    for i in range(0, total_remaining, batch_size):
+        batch_prompts = remaining_prompts[i : i + batch_size]
+        
+        # 批量处理
         if args.multi_process == "False":
             predictions = [gpt_scoring(sample, model=args.model_name, temperature=args.temperature, max_new_tokens=args.max_new_token)
-                           for sample in prompts]
+                           for sample in batch_prompts]
         else:
             pool_fn = partial(gpt_scoring, model=args.model_name, temperature=args.temperature, max_new_tokens=args.max_new_token)
-            predictions = pool.map(pool_fn, prompts)
+            predictions = pool.map(pool_fn, batch_prompts)
 
-    # is_pair = "prometheus" not in args.data_type and args.data_type not in ['halu-eval-summary', 'halu-eval-qa', 'halu-eval-dialogue', 'toxic-chat']
-    # is_cot = args.prompt_type == "cot"
-    pred_scores = [parse_score_gpt(p, data_type=args.data_type, prompt_type=args.prompt_type) for p in predictions]
+        # 解析分数
+        current_scores = [parse_score_gpt(p, data_type=args.data_type, prompt_type=args.prompt_type) for p in predictions]
+        new_pred_scores.extend(current_scores)
 
-    # 存储prediction和score到文件中，便于后续确认是否后处理存在问题
-    with open(args.logit_file, "w", encoding="utf-8") as fout:
-        for prediction, score in zip(predictions, pred_scores):
-            json_line = {"score": score, "prediction": prediction}
-            fout.write(json.dumps(json_line)+"\n")
+        # 写入文件 (Append 模式)
+        with open(args.logit_file, "a") as f:
+            for idx, prediction in enumerate(predictions):
+                json_line = {
+                    "score": current_scores[idx],
+                    "prediction": prediction,
+                }
+                f.write(json.dumps(json_line) + "\n")
+        
+        print(f"Batch saved. Progress: {i + len(batch_prompts)}/{total_remaining} (relative to resume point)")
 
-    metrics_dicts = calculate_metrics(answers, pred_scores, args.data_type)
+    if args.multi_process != "False":
+        pool.close()
+        pool.join()
+
+    # -----------------------------------------------------------
+    # Final Metrics
+    # -----------------------------------------------------------
+    final_pred_scores = existing_pred_scores + new_pred_scores
+    metrics_dicts = calculate_metrics(answers, final_pred_scores, args.data_type)
+    
     print("**********************************************")
     print(f"Model: {args.model_name}, Data: {args.data_type}")
     print(metrics_dicts)

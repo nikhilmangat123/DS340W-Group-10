@@ -66,19 +66,24 @@ def compute_accuracy_rate_weak_weak(relia_scores1, relia_scores2, judge_output1,
             judge_outputs.append(output1)
             judge_answers.append(answer)
         elif rank2 < rank1:
-            judge_outputs.append(output1)
+            judge_outputs.append(output2)
             judge_answers.append(answer)
         else:
             judge_outputs.append(random.choice([output1, output2]))
             judge_answers.append(answer)
 
-    accuracy_rate = calculate_metrics(judge_answers, judge_outputs, dataset_type)
+    # 计算集成模型的准确率
+    ensemble_accuracy = calculate_metrics(judge_answers, judge_outputs, dataset_type)
+    
+    # 计算两个模型单独的准确率
+    model1_accuracy = calculate_metrics(answers, judge_output1, dataset_type)
+    model2_accuracy = calculate_metrics(answers, judge_output2, dataset_type)
 
-    return accuracy_rate
+    return ensemble_accuracy, model1_accuracy, model2_accuracy
 
 def compute_accuracy_rate_weak_strong(relia_scores1, judge_output1, judge_output_gpt, answers, dataset_type, ratio):
 
-    def get_top_half_indices(relia_scores, dataset_type, ratio=0.9):
+    def get_top_half_indices(relia_scores, dataset_type, ratio):
         sorted_indices = np.argsort(-np.array(relia_scores))
         top_half_indices = sorted_indices[:int(len(sorted_indices) * ratio)]
 
@@ -101,13 +106,22 @@ def compute_accuracy_rate_weak_strong(relia_scores1, judge_output1, judge_output
             judge_outputs.append(output1)
             judge_answers.append(answer)
         else:
-            judge_outputs.append(output1)
+            judge_outputs.append(output2)
             judge_answers.append(answer)
 
-    accuracy_rate = calculate_metrics(judge_answers, judge_outputs, dataset_type)
+    # 计算集成模型的准确率
+    ensemble_accuracy = calculate_metrics(judge_answers, judge_outputs, dataset_type)
+    
+    # 计算两个模型单独的准确率
+    model1_accuracy = calculate_metrics(answers, judge_output1, dataset_type)
+    model2_accuracy = calculate_metrics(answers, judge_output_gpt, dataset_type)
 
-    print(f"Ratio: {ratio}, Accuracy Rate: {accuracy_rate}")
-    # print(round(accuracy_rate["accuracy"], 4))
+    print(f"Ratio: {ratio}")
+    print(f"Ensemble Accuracy Rate: {ensemble_accuracy}")
+    print(f"Model 1 Accuracy Rate: {model1_accuracy}")
+    print(f"Model 2 Accuracy Rate: {model2_accuracy}")
+    
+    return ensemble_accuracy, model1_accuracy, model2_accuracy
 
 
 
@@ -138,7 +152,19 @@ def main():
             judge_output2 = [json.loads(line.strip()) for line in f.readlines()]
 
         # 计算指标的准确率
-        accuracy_rate = compute_accuracy_rate_weak_weak(relia_scores1, relia_scores2, judge_output1, judge_output2, answers, args.data_type)
+        ensemble_accuracy, model1_accuracy, model2_accuracy = compute_accuracy_rate_weak_weak(
+            relia_scores1, relia_scores2, judge_output1, judge_output2, answers, args.data_type)
+
+        print("**********************************************")
+        print("Ensemble Model Metrics:")
+        print(ensemble_accuracy)
+        print("**********************************************")
+        print("Model 1 Metrics:")
+        print(model1_accuracy)
+        print("**********************************************")
+        print("Model 2 Metrics:")
+        print(model2_accuracy)
+        print("**********************************************")
     
     else:
         with open(args.logit_file_gpt, 'r') as f:

@@ -2,10 +2,12 @@ import json
 import torch
 import argparse
 import random
+from transformers import AutoTokenizer
 import vllm
 
 from build_dataset import build_dataset, calculate_metrics
 from build_prompt_judge import create_prompt, create_prompt_cot, parse_predictions
+from build_prompt_gpt import create_prompt_gpt, parse_score_gpt
 from build_icl import build_icl
 
 
@@ -25,7 +27,7 @@ def build_params():
     parser.add_argument(
         "--model-type",
         type=str,
-        choices=("judgelm", "pandalm", "auto-j", "prometheus", "llama", "deberta",),
+        choices=("judgelm", "pandalm", "auto-j", "prometheus", "general"),
         default=None,
     )
     parser.add_argument(
@@ -64,6 +66,11 @@ def build_params():
         type=str,
         default=None
     )
+    parser.add_argument(
+        "--apply-chat-template",
+        default=False,
+        action='store_true'
+    )
     return parser
 
 
@@ -74,9 +81,10 @@ def batched_generation(
     max_new_token=16,
     temperature=0.0,
     top_p=1.0,
+    apply_chat_template=False,
 ):
     print("Start load VLLM model!")
-    model = vllm.LLM(model=model_path, tensor_parallel_size=1, dtype="bfloat16")
+    model = vllm.LLM(model=model_path, tensor_parallel_size=torch.cuda.device_count(), dtype="bfloat16")
     sampling_params = vllm.SamplingParams(
         temperature=temperature,
         max_tokens=max_new_token,
@@ -84,6 +92,9 @@ def batched_generation(
     )
     print("VLLM model loaded!")
 
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    if apply_chat_template:
+        prompts = [tokenizer.apply_chat_template([{"role": "user", "content": prompt}], tokenize=False, add_generation_prompt=True, enable_thinking=False) for prompt in prompts]
     pred_list = model.generate(prompts, sampling_params)
     pred_list = [it.outputs[0].text for it in pred_list]
 
@@ -97,7 +108,9 @@ if __name__ == "__main__":
     
     dataset = build_dataset(args.data_type, args.data_path)
 
-    if args.prompt_type in ["vanilla", "icl"]:
+    if args.model_type == "general":
+        instruction = create_prompt_gpt(args.data_type, args.prompt_type)
+    elif args.prompt_type in ["vanilla", "icl"]:
         instruction = create_prompt(args.model_type, args.data_type)
     else:
         instruction = create_prompt_cot(args.model_type, args.data_type)
@@ -138,6 +151,27 @@ if __name__ == "__main__":
                 prompts.append(prompt_a)
                 prompts.append(prompt_b)
 
+        elif args.model_type == "general":
+            if args.data_type in ["prometheus-ind", "prometheus-ood", "halu-eval-summary", "halu-eval-dialogue", "halu-eval-qa", "toxic-chat"]:
+                prompt = instruction.format(question_body=example["question_body"],
+                                            rubric=example["rubric"],
+                                            answer_body=example["answer_body"])
+                prompts.append(prompt)
+            else:
+                example["rubric"] = "Please rate the helpfulness, relevance, accuracy, level of details of their responses."
+                if args.prompt_type == "icl":
+                    prompt = instruction.format(question_body=example["question_body"],
+                                                rubric=example["rubric"],
+                                                demonstrations=example["demonstrations"],
+                                                answer1_body=example["answer1_body"],
+                                                answer2_body=example["answer2_body"])
+                else:
+                    prompt = instruction.format(question_body=example["question_body"],
+                                                rubric=example["rubric"],
+                                                answer1_body=example["answer1_body"],
+                                                answer2_body=example["answer2_body"])      
+                prompts.append(prompt)
+
         answers.append(example["score"])
 
     print("Prompt built finished! Sampled prompt:")
@@ -146,14 +180,17 @@ if __name__ == "__main__":
     predictions = batched_generation(args.model_name_or_path, prompts,
                                      max_new_token=args.max_new_token,
                                      temperature=args.temperature,
-                                     top_p=args.top_p)
+                                     top_p=args.top_p, apply_chat_template=args.apply_chat_template)
 
-    pred_scores = parse_predictions(predictions, args.model_type, args.data_type, args.prompt_type)
+    if args.model_type == "general":
+        pred_scores = [parse_score_gpt(p, data_type=args.data_type, prompt_type=args.prompt_type) for p in predictions] 
+    else:
+        pred_scores = parse_predictions(predictions, args.model_type, args.data_type, args.prompt_type)
 
     if args.logit_file is not None:
         with open(args.logit_file, "w", encoding="utf-8") as fout:
-            for pred in pred_scores:
-                fout.write(json.dumps(pred)+"\n")
+            for score, pred in zip(pred_scores, predictions):
+                fout.write(json.dumps({"score": score, "prediction": pred})+"\n")
 
     metrics_dicts = calculate_metrics(answers, pred_scores, args.data_type)
     print("**********************************************")
