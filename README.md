@@ -1,6 +1,6 @@
-# DS 340W Group 10 — LLM-as-a-Judge Reliability Metrics
+# DS 340W Group 9 — LLM-as-a-Judge Reliability Metrics
 
-**This is the project repository of Group 10 in DS 340W (Applied Data Sciences,
+**This is the project repository of Group 9 in DS 340W (Applied Data Sciences,
 Penn State, Fall 2026).** It is *not* the official repository of any paper.
 
 The repository mirrors [HuihuiChyan/UnlimitedJudge](https://github.com/HuihuiChyan/UnlimitedJudge),

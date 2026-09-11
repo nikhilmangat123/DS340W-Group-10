@@ -41,9 +41,9 @@ Changes made in this mirror relative to upstream (base commit `fb9e628`):
   about this repository.
 - `.gitignore`: entries appended for model weights, run outputs and
   virtual environments.
-- Added, not present upstream: this `NOTICE.md`; `ds340w/` (Group 10's own
+- Added, not present upstream: this `NOTICE.md`; `ds340w/` (Group 9's own
   code: environment spec, verification script, data-access wrapper, tests);
-  `docs/` (Group 10's documentation).
+  `docs/` (Group 9's documentation).
 
 No upstream source files were modified. `src/`, `data/`, `requirements.txt`
 and the root `*.sh` scripts are byte-identical to upstream commit `fb9e628`,

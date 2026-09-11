@@ -1,4 +1,4 @@
-# DS 340W Group 10 - analysis environment.
+# DS 340W Group 9 - analysis environment.
 #
 # Install THIS file, not the root requirements.txt.
 #

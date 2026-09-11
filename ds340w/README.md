@@ -1,6 +1,6 @@
-# `ds340w/` — Group 10 project code
+# `ds340w/` — Group 9 project code
 
-Everything in this directory is written by DS 340W Group 10. It wraps the
+Everything in this directory is written by DS 340W Group 9. It wraps the
 upstream UnlimitedJudge code in `../src/` and never modifies it.
 
 ## Setup (CPU only, no API key, no model weights)

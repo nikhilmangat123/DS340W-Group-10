@@ -67,7 +67,7 @@ def main() -> int:
     sha = git("rev-parse", "--short", "HEAD") or "unknown"
     branch = git("rev-parse", "--abbrev-ref", "HEAD") or "unknown"
     print("=" * 72)
-    print("DS 340W Group 10 - environment verification")
+    print("DS 340W Group 9 - environment verification")
     print("=" * 72)
     print(f"  repo        {REPO_ROOT}")
     print(f"  git         {branch} @ {sha}")
