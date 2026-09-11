@@ -8,3 +8,12 @@ __pycache__
 .DS_Store
 git_push.sh
 relia_scores/*
+# --- added for DS 340W mirror: model weights, run outputs, local env ---
+output/
+outputs/
+.venv/
+venv/
+*.safetensors
+*.bin
+*.pt
+.ipynb_checkpoints/
