@@ -1,0 +1,17 @@
+# DS 340W Group 10 - analysis environment.
+#
+# Install THIS file, not the root requirements.txt.
+#
+# The root requirements.txt belongs to the upstream UnlimitedJudge project and
+# pins torch==2.1.2, vllm==0.4.0 and flash-attn==2.0.4. That stack exists to run
+# 7B-13B judge models on a GPU (evaluate_judge.py, cal_reliability.py,
+# finetune.py), which we do not do. It is slow and brittle to build in 2026 and
+# none of it is imported by the code path we use.
+#
+# Our path (src/build_dataset.py: build_dataset + calculate_metrics, and the
+# ds340w/ package) needs only the four packages below. Versions are the ones
+# verified on CPU on macOS with Python 3.12; see ds340w/README.md.
+numpy==2.4.4
+scipy==1.17.1
+scikit-learn==1.8.0
+datasets==5.0.1
