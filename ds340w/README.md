@@ -7,8 +7,14 @@ upstream UnlimitedJudge code in `../src/` and never modifies it.
 
 From the repository root:
 
+**Python 3.11 or newer is required** (numpy 2.4.4, scipy 1.17.1 and
+scikit-learn 1.8.0 all declare `Requires-Python >= 3.11`). Check first with
+`python3 --version`; on macOS the system `python3` is often 3.9 and will fail
+at the install step. Use a newer interpreter explicitly if needed, e.g. one
+from conda, Homebrew or python.org.
+
 ```bash
-python3 -m venv .venv             # Python 3.12.12 verified; any 3.10+ should work
+python3.13 -m venv .venv          # or python3.12, python3.11; 3.12.12 and 3.13.5 verified
 source .venv/bin/activate
 pip install -r ds340w/requirements.txt
 ```
