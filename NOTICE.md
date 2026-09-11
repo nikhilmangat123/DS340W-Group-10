@@ -12,7 +12,11 @@ The code in `src/` and the shell scripts in the repository root are copied,
 with full git history, from:
 
 - **UnlimitedJudge** — https://github.com/HuihuiChyan/UnlimitedJudge
-  (Huihui Huang and co-authors, Harbin Institute of Technology).
+  — the official code release of the paper cited below. Its first author is
+  **Hui Huang** (Faculty of Computing, Harbin Institute of Technology);
+  "HuihuiChyan" is only the GitHub account name. Co-authors are affiliated
+  with Harbin Institute of Technology, Beijing Institute of Technology and
+  Baidu Inc., per the paper's first page.
 
 It is the official repository for:
 
@@ -28,8 +32,23 @@ should not be described as open source. It is reproduced here for
 non-commercial academic study only. If you are an upstream author and object
 to this mirror, please open an issue and it will be taken down.
 
-Changes made in this mirror relative to upstream are limited to this NOTICE
-file and additions to `.gitignore`. No upstream source files were modified.
+Changes made in this mirror relative to upstream (base commit `fb9e628`):
+
+- `README.md`: a DS 340W project header is prepended above the upstream
+  README text, which follows unchanged. This is the only upstream file that
+  has been edited, and the header exists so that upstream's opening sentence
+  ("This is the official repository for paper ...") is not read as a claim
+  about this repository.
+- `.gitignore`: entries appended for model weights, run outputs and
+  virtual environments.
+- Added, not present upstream: this `NOTICE.md`; `ds340w/` (Group 10's own
+  code: environment spec, verification script, data-access wrapper, tests);
+  `docs/` (Group 10's documentation).
+
+No upstream source files were modified. `src/`, `data/`, `requirements.txt`
+and the root `*.sh` scripts are byte-identical to upstream commit `fb9e628`,
+which can be checked with
+`git diff --stat fb9e628 -- src/ data/ requirements.txt '*.sh'` (empty output).
 
 ## Third-party datasets under `data/`
 

@@ -1,3 +1,36 @@
+# DS 340W Group 10 — LLM-as-a-Judge Reliability Metrics
+
+**This is the project repository of Group 10 in DS 340W (Applied Data Sciences,
+Penn State, Fall 2026).** It is *not* the official repository of any paper.
+
+The repository mirrors [HuihuiChyan/UnlimitedJudge](https://github.com/HuihuiChyan/UnlimitedJudge),
+with its full upstream git history, as the code and data base for our first
+parent paper:
+
+> Hui Huang, Xingyuan Bu, Hongli Zhou, Yingqi Qu, Jing Liu, Muyun Yang, Bing Xu,
+> Tiejun Zhao. 2025. *An Empirical Study of LLM-as-a-Judge for LLM Evaluation:
+> Fine-tuned Judge Model is not a General Substitute for GPT-4.* Findings of the
+> Association for Computational Linguistics: ACL 2025, pages 5880–5895.
+> https://aclanthology.org/2025.findings-acl.306/
+
+We are not authors of the upstream code or of any dataset under `data/`.
+Attribution, the absence of an upstream license, and the list of third-party
+datasets are in [NOTICE.md](NOTICE.md).
+
+| Where | What |
+|---|---|
+| `src/`, `data/`, root `*.sh`, `requirements.txt` | Upstream files, byte-identical to UnlimitedJudge at commit `fb9e628`. Not modified. |
+| `ds340w/` | Our code: environment spec, verification script, data-access wrapper, tests. Start with [`ds340w/README.md`](ds340w/README.md). |
+| `docs/` | Our documentation: parent-paper selection, dataset summary, the auto-j ordering convention, decision log. |
+
+Everything below this line is the upstream project's own README, reproduced
+unchanged. Its instructions (`pip install -r requirements.txt`, GPU model
+downloads, `evaluate_judge.py`, `evaluate_gpt.py`) describe the upstream
+authors' full pipeline, which we do not run. See `ds340w/README.md` for the
+CPU-only path we use.
+
+---
+
 # Unlimited Judge
 
 This is the official repository for paper **An Empirical Study of LLM-as-a-Judge for LLM Evaluation: Fine-tuned Judge Model is not a General Substitute for GPT-4**.
